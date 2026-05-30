@@ -29,8 +29,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .brand{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--text);letter-spacing:0.3px;}
 .sub{font-size:11px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;margin-top:1px;}
 
-.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;position:sticky;top:83px;z-index:9;}
-.tab-btn{flex:1;border:none;background:transparent;padding:14px 8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:400;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:0.2px;}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 12px;position:sticky;top:83px;z-index:9;}
+.tab-btn{flex:1;border:none;background:transparent;padding:14px 4px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:400;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:0.1px;}
 .tab-btn.active{color:var(--rose);border-bottom-color:var(--rose);font-weight:500;}
 
 .content{padding:20px;max-width:480px;margin:0 auto;}
@@ -47,6 +47,7 @@ textarea{resize:none;height:72px;}
 .btn:active{transform:scale(0.98);}
 .btn-primary{background:var(--rose);color:#fff;}.btn-primary:hover{opacity:.9;}
 .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+.btn-success{background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;}
 .btn-danger{background:#fff0ef;color:var(--danger);border:1px solid #fcd4d1;}.btn-danger:hover{background:#ffe0de;}
 .btn-sm{padding:6px 12px;font-size:12px;width:auto;margin-bottom:0;}
 
@@ -71,11 +72,10 @@ textarea{resize:none;height:72px;}
 .stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
 .stat-value{font-size:22px;font-weight:600;color:var(--rose);}
 
-/* Caja de envio en stats */
+/* Caja */
 .caja-widget{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;}
 .caja-widget-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .caja-widget-title{font-size:14px;font-weight:600;color:var(--text);}
-.caja-sin-seleccion{text-align:center;padding:18px 0 8px;color:var(--text3);font-size:13px;}
 .caja-select-wrap{position:relative;}
 .caja-select-wrap::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:12px;}
 .caja-desglose{margin-top:12px;}
@@ -96,6 +96,37 @@ textarea{resize:none;height:72px;}
 .hist-client{font-size:14px;font-weight:500;color:var(--text);margin-top:1px;}
 .hist-date{font-size:11px;color:var(--text3);}
 .hist-meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12px;color:var(--text2);margin-bottom:10px;}
+
+/* COBROS */
+.cobro-resumen{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.cobro-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.cobro-stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+.cobro-stat-value{font-size:20px;font-weight:700;color:var(--rose);}
+.cobro-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;border-left-width:4px;}
+.cobro-card.pagado{border-left-color:#2e7d32;}
+.cobro-card.abonado{border-left-color:#e65100;}
+.cobro-card.pendiente{border-left-color:var(--danger);}
+.cobro-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.cobro-nombre{font-size:14px;font-weight:600;color:var(--text);}
+.cobro-orden-num{font-size:11px;color:var(--text3);margin-top:2px;}
+.cobro-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;}
+.cobro-badge.pagado{background:#e8f5e9;color:#2e7d32;}
+.cobro-badge.abonado{background:#fff3e0;color:#e65100;}
+.cobro-badge.pendiente{background:#fff0ef;color:var(--danger);}
+.cobro-montos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
+.cobro-monto-box{text-align:center;background:var(--surface2);border-radius:8px;padding:8px 4px;}
+.cobro-monto-label{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.cobro-monto-val{font-size:13px;font-weight:700;}
+.cobro-monto-val.rojo{color:var(--danger);}
+.cobro-monto-val.naranja{color:#e65100;}
+.cobro-monto-val.verde{color:#2e7d32;}
+.abono-hist{border-top:1px solid var(--border);padding-top:10px;margin-top:4px;}
+.abono-hist-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.abono-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);}
+.abono-row:last-child{border-bottom:none;}
+.abono-row-monto{font-weight:700;color:#e65100;}
+.cobro-btns{display:flex;gap:8px;margin-top:10px;}
+.cobro-btns .btn{margin-bottom:0;font-size:12px;padding:9px 10px;flex:1;}
 
 .divider{height:1px;background:var(--border);margin:16px 0;}
 .empty{text-align:center;padding:30px 20px;color:var(--text3);}
@@ -140,7 +171,8 @@ textarea{resize:none;height:72px;}
 <div class="tabs">
   <button class="tab-btn active" onclick="mostrar('ordenes',this)">Ordenes</button>
   <button class="tab-btn" onclick="mostrar('calculadora',this)">Calculadora</button>
-  <button class="tab-btn" onclick="mostrar('estadisticas',this)">Estadisticas</button>
+  <button class="tab-btn" onclick="mostrar('cobros',this)">Cobros</button>
+  <button class="tab-btn" onclick="mostrar('estadisticas',this)">Stats</button>
 </div>
 
 <div class="content">
@@ -206,10 +238,29 @@ textarea{resize:none;height:72px;}
     </div>
   </div>
 
+  <!-- COBROS -->
+  <div id="cobros" class="panel">
+    <div class="cobro-resumen">
+      <div class="cobro-stat" style="grid-column:1/-1;">
+        <div class="cobro-stat-label">💰 Total pendiente por cobrar</div>
+        <div class="cobro-stat-value" id="cobroTotalPendiente">Q0.00</div>
+      </div>
+      <div class="cobro-stat">
+        <div class="cobro-stat-label">⏳ Pendientes</div>
+        <div class="cobro-stat-value" id="cobroNumPendiente">0</div>
+      </div>
+      <div class="cobro-stat">
+        <div class="cobro-stat-label">✅ Pagadas</div>
+        <div class="cobro-stat-value" style="color:#2e7d32;" id="cobroNumPagado">0</div>
+      </div>
+    </div>
+    <div id="cobros-list">
+      <div class="empty"><div class="empty-icon">💳</div><div class="empty-text">No hay ordenes guardadas aun</div></div>
+    </div>
+  </div>
+
   <!-- ESTADISTICAS -->
   <div id="estadisticas" class="panel">
-
-    <!-- Stats generales -->
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Ordenes</div>
@@ -224,8 +275,6 @@ textarea{resize:none;height:72px;}
         <div class="stat-value" id="statCosto">Q0</div>
       </div>
     </div>
-
-    <!-- Widget caja de envio -->
     <div class="caja-widget">
       <div class="caja-widget-header">
         <div class="caja-widget-title">📦 Caja de envio actual</div>
@@ -262,8 +311,6 @@ textarea{resize:none;height:72px;}
         </div>
       </div>
     </div>
-
-    <!-- Historial -->
     <div id="historial"></div>
     <div class="divider"></div>
     <button class="btn btn-danger" onclick="pedirReiniciar()">Reiniciar todos los datos</button>
@@ -327,6 +374,35 @@ textarea{resize:none;height:72px;}
   </div>
 </div>
 
+<!-- Modal registrar abono -->
+<div class="overlay" id="modalAbono">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="abonoSheetTitle">Registrar abono</div>
+    <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:2px;" id="abonoClienteLabel">Cliente</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:13px;font-weight:600;" id="abonoOrdenLabel">KF-0001</div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);">Saldo pendiente</div>
+          <div style="font-size:20px;font-weight:700;color:var(--danger);" id="abonoSaldoPendiente">Q0.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="label">Monto del abono (Q) *</div>
+      <input type="number" id="abonoMonto" placeholder="0.00" min="0.01" step="0.01">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <div class="label">Nota — opcional</div>
+      <input type="text" id="abonoNota" placeholder="Ej. Transferencia BI, efectivo...">
+    </div>
+    <div style="height:14px;"></div>
+    <button class="btn btn-primary" onclick="guardarAbono()">Registrar abono</button>
+    <button class="btn btn-secondary" onclick="cerrarModalAbono()">Cancelar</button>
+  </div>
+</div>
+
 <!-- Dialogo generico -->
 <div class="dialog-overlay" id="dlg">
   <div class="dialog-box">
@@ -346,8 +422,8 @@ var items = [];
 var ordenes = [];
 var numeroActual = 1;
 var pendientePDF = null;
-// cajaActual: { size: '16x16x16', costo: 150, fechaInicio: '...', ordenesIds: [] }
 var cajaActual = null;
+var abonoOrdenIdx = null; // orden actualmente en el modal de abono
 
 function cargarDatos() {
   try {
@@ -372,6 +448,7 @@ cargarDatos();
 actualizarNumero();
 renderItems();
 renderStats();
+renderCobros();
 
 // ── UI helpers ──────────────────────────────────────
 
@@ -380,6 +457,7 @@ function mostrar(id, btn) {
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
+  if (id === 'cobros') renderCobros();
 }
 
 function dialogo(opts) {
@@ -390,7 +468,7 @@ function dialogo(opts) {
   btnsEl.innerHTML = '';
   opts.btns.forEach(function(b) {
     var el = document.createElement('button');
-    el.className  = 'btn ' + (b.clase || 'btn-secondary');
+    el.className   = 'btn ' + (b.clase || 'btn-secondary');
     el.textContent = b.texto;
     el.onclick = function() {
       document.getElementById('dlg').classList.remove('show');
@@ -405,9 +483,10 @@ function alerta(icon, title, msg) {
   dialogo({ icon:icon, title:title, msg:msg, btns:[{ texto:'Entendido', clase:'btn-primary' }] });
 }
 
-function abrirModal()   { document.getElementById('modal').classList.add('show'); }
-function cerrarModal()  { document.getElementById('modal').classList.remove('show'); }
+function abrirModal()     { document.getElementById('modal').classList.add('show'); }
+function cerrarModal()    { document.getElementById('modal').classList.remove('show'); }
 function cerrarModalPDF() { document.getElementById('modalPDF').classList.remove('show'); pendientePDF = null; }
+function cerrarModalAbono() { document.getElementById('modalAbono').classList.remove('show'); abonoOrdenIdx = null; }
 
 function actualizarNumero() {
   document.getElementById('numeroOrden').value = 'KF-' + String(numeroActual).padStart(4,'0');
@@ -421,8 +500,8 @@ function agregarProducto() {
   var link       = document.getElementById('prodLink').value.trim();
   var cant       = parseInt(document.getElementById('prodCant').value) || 1;
   var precio     = parseFloat(document.getElementById('prodPrecio').value);
-  var descTienda = parseFloat(document.getElementById('prodDescTienda').value) || 0; // USD — ganancia extra
-  var descuento  = parseFloat(document.getElementById('prodDescuento').value) || 0;  // Q — rebaja al cliente
+  var descTienda = parseFloat(document.getElementById('prodDescTienda').value) || 0;
+  var descuento  = parseFloat(document.getElementById('prodDescuento').value) || 0;
 
   if (!nombre) { alerta('!','Campo requerido','Ingresa el nombre del producto.'); return; }
   if (!precio || precio <= 0) { alerta('!','Precio invalido','Ingresa un precio en USD valido.'); return; }
@@ -455,18 +534,15 @@ function renderItems() {
   }
   var subtotal = 0, envio = 0, totalDesc = 0, totalDescTienda = 0, html = '';
   items.forEach(function(item, i) {
-    // Lo que le cobramos al cliente se basa en el precio ORIGINAL (sin desc tienda)
     var base  = ((item.precio * (1 + GANANCIA_PCT)) + ENVIO_USD) * item.cant * CAMBIO;
     var final = base - (item.descuento || 0);
-    subtotal       += item.precio * item.cant;
-    envio          += ENVIO_USD * item.cant;
-    totalDesc      += (item.descuento || 0);
+    subtotal        += item.precio * item.cant;
+    envio           += ENVIO_USD * item.cant;
+    totalDesc       += (item.descuento || 0);
     totalDescTienda += (item.descTienda || 0) * item.cant;
-
     var badges = '';
     if (item.descTienda > 0) badges += '<span class="descuento-badge" style="background:#e3f2fd;color:#1565c0;">+$' + item.descTienda.toFixed(2) + ' ganancia tienda</span>';
     if (item.descuento > 0)  badges += '<span class="descuento-badge">-Q' + item.descuento.toFixed(2) + ' desc cliente</span>';
-
     html += '<div class="product-item">' +
       '<div class="product-num">' + (i+1) + '</div>' +
       '<div class="product-info"><div class="product-name">' + item.nombre + '</div>' +
@@ -479,14 +555,10 @@ function renderItems() {
       '</div></div>';
   });
   lista.innerHTML = html;
-
-  // Total que paga el cliente — basado en precio original, no cambia por descuento tienda
   var gananciaBase  = subtotal * GANANCIA_PCT;
-  var totalCliente  = (subtotal + gananciaBase + envio) * CAMBIO - totalDesc;
-  // Ganancia real tuya = 20% + descuento tienda en Q - descuento que le diste al cliente
   var gananciaExtra = totalDescTienda * CAMBIO;
   var gananciaTotal = Math.max(0, (gananciaBase * CAMBIO) + gananciaExtra - totalDesc);
-
+  var totalCliente  = (subtotal + gananciaBase + envio) * CAMBIO - totalDesc;
   resumenWrap.style.display = 'block';
   document.getElementById('r-costo').textContent    = 'Q' + (subtotal * CAMBIO).toFixed(2);
   document.getElementById('r-envio').textContent    = 'Q' + (envio * CAMBIO).toFixed(2);
@@ -524,25 +596,28 @@ function guardarOrden() {
     totalDescTienda += (item.descTienda || 0) * item.cant;
   });
   var gananciaBase  = subtotal * GANANCIA_PCT;
-  var gananciaExtra = totalDescTienda * CAMBIO;  // desc tienda en Q = ganancia extra
+  var gananciaExtra = totalDescTienda * CAMBIO;
   var gananciaReal  = Math.max(0, (gananciaBase * CAMBIO) + gananciaExtra - totalDesc);
-  // Total cliente = precio original con el 20% y envio, menos cualquier descuento que le diste
   var total         = (subtotal + gananciaBase + envio) * CAMBIO - totalDesc;
-  var numero   = document.getElementById('numeroOrden').value;
-  var fecha    = new Date().toLocaleDateString('es-GT');
-  var envioUSD = envio;
+  var numero        = document.getElementById('numeroOrden').value;
+  var fecha         = new Date().toLocaleDateString('es-GT');
 
-  var orden = { numero:numero, cliente:cliente, costo:subtotal*CAMBIO, ganancia:gananciaReal,
-                envio:envio*CAMBIO, envioUSD:envio, descuentos:totalDesc, total:total, fecha:fecha,
-                fechaGuardado: Date.now() };
+  var orden = {
+    numero: numero, cliente: cliente, costo: subtotal*CAMBIO,
+    ganancia: gananciaReal, envio: envio*CAMBIO, envioUSD: envio,
+    descuentos: totalDesc, total: total, fecha: fecha,
+    fechaGuardado: Date.now(),
+    // Cobros
+    abonos: [],        // [{monto, nota, fecha}]
+    pagado: false
+  };
   ordenes.push(orden);
-
   guardarDatos();
   renderStats();
+  renderCobros();
 
   pendientePDF = { numero:numero, cliente:cliente, fecha:fecha, items:JSON.parse(JSON.stringify(items)),
                    subtotal:subtotal, ganancia:gananciaReal, envio:envio, totalDescuentos:totalDesc, total:total };
-
   items = [];
   document.getElementById('cliente').value = '';
   numeroActual++;
@@ -604,38 +679,196 @@ function calcular() {
   document.getElementById('calc-result-wrap').style.display = 'block';
 }
 
+// ── COBROS ────────────────────────────────────────────
+
+function getSaldoPendiente(orden) {
+  var totalAbonado = 0;
+  (orden.abonos || []).forEach(function(a){ totalAbonado += a.monto; });
+  return Math.max(0, orden.total - totalAbonado);
+}
+
+function getEstadoPago(orden) {
+  if (orden.pagado) return 'pagado';
+  var totalAbonado = 0;
+  (orden.abonos || []).forEach(function(a){ totalAbonado += a.monto; });
+  if (totalAbonado > 0) return 'abonado';
+  return 'pendiente';
+}
+
+function renderCobros() {
+  var totalPendiente = 0, numPendiente = 0, numPagado = 0;
+  ordenes.forEach(function(o) {
+    if (o.pagado) { numPagado++; }
+    else { numPendiente++; totalPendiente += getSaldoPendiente(o); }
+  });
+  document.getElementById('cobroTotalPendiente').textContent = 'Q' + totalPendiente.toFixed(2);
+  document.getElementById('cobroNumPendiente').textContent   = numPendiente;
+  document.getElementById('cobroNumPagado').textContent      = numPagado;
+
+  var lista = document.getElementById('cobros-list');
+  if (ordenes.length === 0) {
+    lista.innerHTML = '<div class="empty"><div class="empty-icon">💳</div><div class="empty-text">No hay ordenes guardadas aun</div></div>';
+    return;
+  }
+
+  lista.innerHTML = '';
+  // Primero pendientes y abonados, luego pagados
+  var sorted = ordenes.map(function(o,i){ return {o:o, i:i}; });
+  sorted.sort(function(a,b){
+    var ea = getEstadoPago(a.o), eb = getEstadoPago(b.o);
+    var order = {pendiente:0, abonado:1, pagado:2};
+    return order[ea] - order[eb];
+  });
+
+  sorted.forEach(function(item) {
+    var o   = item.o;
+    var idx = item.i;
+    var estado = getEstadoPago(o);
+    var saldo  = getSaldoPendiente(o);
+    var totalAbonado = o.total - saldo;
+
+    var card = document.createElement('div');
+    card.className = 'cobro-card ' + estado;
+
+    var estadoLabel = estado === 'pagado' ? 'Pagado' : (estado === 'abonado' ? 'Abonado' : 'Pendiente');
+
+    // Historial de abonos
+    var abonosHTML = '';
+    if (o.abonos && o.abonos.length > 0) {
+      abonosHTML = '<div class="abono-hist"><div class="abono-hist-title">Abonos registrados</div>';
+      o.abonos.forEach(function(a, ai) {
+        abonosHTML += '<div class="abono-row">' +
+          '<div><div>' + a.fecha + '</div>' + (a.nota ? '<div style="font-size:11px;color:var(--text3);">' + a.nota + '</div>' : '') + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span class="abono-row-monto">Q' + a.monto.toFixed(2) + '</span>' +
+          '<button onclick="eliminarAbono(' + idx + ',' + ai + ')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0;">×</button>' +
+          '</div></div>';
+      });
+      abonosHTML += '</div>';
+    }
+
+    card.innerHTML =
+      '<div class="cobro-top">' +
+        '<div><div class="cobro-nombre">' + o.cliente + '</div><div class="cobro-orden-num">' + o.numero + ' · ' + o.fecha + '</div></div>' +
+        '<span class="cobro-badge ' + estado + '">' + estadoLabel + '</span>' +
+      '</div>' +
+      '<div class="cobro-montos">' +
+        '<div class="cobro-monto-box"><div class="cobro-monto-label">Total orden</div><div class="cobro-monto-val">Q' + o.total.toFixed(2) + '</div></div>' +
+        '<div class="cobro-monto-box"><div class="cobro-monto-label">Abonado</div><div class="cobro-monto-val naranja">Q' + totalAbonado.toFixed(2) + '</div></div>' +
+        '<div class="cobro-monto-box"><div class="cobro-monto-label">Pendiente</div><div class="cobro-monto-val ' + (saldo > 0 ? 'rojo' : 'verde') + '">Q' + saldo.toFixed(2) + '</div></div>' +
+      '</div>' +
+      abonosHTML;
+
+    // Botones
+    var btnsDiv = document.createElement('div');
+    btnsDiv.className = 'cobro-btns';
+
+    if (!o.pagado) {
+      var btnAbono = document.createElement('button');
+      btnAbono.className = 'btn btn-secondary';
+      btnAbono.textContent = '+ Abono';
+      btnAbono.onclick = (function(i){ return function(){ abrirModalAbono(i); }; })(idx);
+      btnsDiv.appendChild(btnAbono);
+
+      var btnPagar = document.createElement('button');
+      btnPagar.className = 'btn btn-success';
+      btnPagar.textContent = '✓ Marcar pagado';
+      btnPagar.onclick = (function(i){ return function(){ marcarPagado(i); }; })(idx);
+      btnsDiv.appendChild(btnPagar);
+    } else {
+      var btnUnpay = document.createElement('button');
+      btnUnpay.className = 'btn btn-secondary';
+      btnUnpay.textContent = 'Reabrir cobro';
+      btnUnpay.onclick = (function(i){ return function(){
+        ordenes[i].pagado = false; guardarDatos(); renderCobros(); renderStats();
+      }; })(idx);
+      btnsDiv.appendChild(btnUnpay);
+    }
+
+    card.appendChild(btnsDiv);
+    lista.appendChild(card);
+  });
+}
+
+function abrirModalAbono(idx) {
+  abonoOrdenIdx = idx;
+  var o = ordenes[idx];
+  var saldo = getSaldoPendiente(o);
+  document.getElementById('abonoSheetTitle').textContent  = 'Registrar abono';
+  document.getElementById('abonoClienteLabel').textContent = o.cliente;
+  document.getElementById('abonoOrdenLabel').textContent  = o.numero;
+  document.getElementById('abonoSaldoPendiente').textContent = 'Q' + saldo.toFixed(2);
+  document.getElementById('abonoMonto').value = '';
+  document.getElementById('abonoNota').value  = '';
+  document.getElementById('modalAbono').classList.add('show');
+}
+
+function guardarAbono() {
+  var monto = parseFloat(document.getElementById('abonoMonto').value);
+  var nota  = document.getElementById('abonoNota').value.trim();
+  if (!monto || monto <= 0) { alerta('!','Monto invalido','Ingresa un monto valido.'); return; }
+
+  var o = ordenes[abonoOrdenIdx];
+  var saldo = getSaldoPendiente(o);
+  if (monto > saldo) { alerta('!','Monto excede el saldo','El abono (Q' + monto.toFixed(2) + ') supera el saldo pendiente (Q' + saldo.toFixed(2) + ').'); return; }
+
+  if (!o.abonos) o.abonos = [];
+  o.abonos.push({ monto:monto, nota:nota, fecha:new Date().toLocaleDateString('es-GT') });
+
+  // Si el abono cubre el saldo completo, marcar como pagado
+  if (getSaldoPendiente(o) === 0) o.pagado = true;
+
+  guardarDatos();
+  cerrarModalAbono();
+  renderCobros();
+  renderStats();
+}
+
+function eliminarAbono(ordenIdx, abonoIdx) {
+  dialogo({ icon:'!', title:'Eliminar abono', msg:'Eliminar este abono del historial?',
+    btns:[
+      { texto:'Si, eliminar', clase:'btn-danger', cb:function(){
+        ordenes[ordenIdx].abonos.splice(abonoIdx, 1);
+        ordenes[ordenIdx].pagado = false;
+        guardarDatos(); renderCobros(); renderStats();
+      }},
+      { texto:'Cancelar' }
+    ]
+  });
+}
+
+function marcarPagado(idx) {
+  dialogo({ icon:'✅', title:'Marcar como pagado', msg:'Confirmas que ' + ordenes[idx].cliente + ' ya pago la orden completa?',
+    btns:[
+      { texto:'Si, pagado', clase:'btn-primary', cb:function(){
+        ordenes[idx].pagado = true;
+        // Agregar abono por el saldo restante si habia pendiente
+        var saldo = getSaldoPendiente(ordenes[idx]);
+        if (saldo > 0) {
+          if (!ordenes[idx].abonos) ordenes[idx].abonos = [];
+          ordenes[idx].abonos.push({ monto:saldo, nota:'Pago completo', fecha:new Date().toLocaleDateString('es-GT') });
+        }
+        guardarDatos(); renderCobros(); renderStats();
+      }},
+      { texto:'Cancelar' }
+    ]
+  });
+}
+
 // ── Caja de envio ─────────────────────────────────────
 
 function seleccionarCaja() {
   var val = document.getElementById('cajaSizeSelect').value;
-  if (!val) {
-    cajaActual = null;
-    guardarDatos();
-    renderCajaWidget();
-    return;
-  }
-  var partes  = val.split('|');
-  var size    = partes[0];
-  var costo   = parseFloat(partes[1]);
-
-  // Si ya habia una caja con el mismo tamano, no resetear el conteo
-  if (cajaActual && cajaActual.size === size) { renderCajaWidget(); return; }
-
-  cajaActual = {
-    size:        size,
-    costo:       costo,
-    cobradoUSD:  0,
-    numOrdenes:  0,
-    fecha:       new Date().toLocaleDateString('es-GT'),
-    fechaInicio: Date.now()
-  };
-  guardarDatos();
-  renderCajaWidget();
+  if (!val) { cajaActual = null; guardarDatos(); renderCajaWidget(); return; }
+  var partes = val.split('|');
+  if (cajaActual && cajaActual.size === partes[0]) { renderCajaWidget(); return; }
+  cajaActual = { size:partes[0], costo:parseFloat(partes[1]), cobradoUSD:0, numOrdenes:0,
+                 fecha:new Date().toLocaleDateString('es-GT'), fechaInicio:Date.now() };
+  guardarDatos(); renderCajaWidget();
 }
 
 function resetCaja() {
-  dialogo({ icon:'📦', title:'Cerrar caja',
-    msg:'Esto reinicia el contador de envio. Usalo cuando ya enviaste la caja y empiezas una nueva.',
+  dialogo({ icon:'📦', title:'Cerrar caja', msg:'Esto reinicia el contador. Usalo cuando ya enviaste la caja.',
     btns:[
       { texto:'Si, cerrar caja', clase:'btn-primary', cb:function(){
         cajaActual = null;
@@ -651,55 +884,32 @@ function renderCajaWidget() {
   var detalle  = document.getElementById('cajaDetalle');
   var btnReset = document.getElementById('btnResetCaja');
   var select   = document.getElementById('cajaSizeSelect');
-
-  if (!cajaActual) {
-    detalle.style.display  = 'none';
-    btnReset.style.display = 'none';
-    select.value = '';
-    return;
-  }
-
-  // Restaurar select al valor guardado
+  if (!cajaActual) { detalle.style.display='none'; btnReset.style.display='none'; select.value=''; return; }
   select.value = cajaActual.size + '|' + cajaActual.costo;
-
-  // Recalcular cobrado sumando envioUSD de todas las ordenes guardadas desde que se abrio la caja
-  var cobrado = 0;
-  var numOrdenes = 0;
+  var cobrado = 0, numOrdenes = 0;
   ordenes.forEach(function(o) {
     if (o.fechaGuardado >= cajaActual.fechaInicio || !cajaActual.fechaInicio) {
-      cobrado += (o.envioUSD || (o.envio / CAMBIO));
-      numOrdenes++;
+      cobrado += (o.envioUSD || (o.envio / CAMBIO)); numOrdenes++;
     }
   });
-  cajaActual.cobradoUSD = cobrado;
-  cajaActual.numOrdenes = numOrdenes;
-  var costo    = cajaActual.costo;
-  var diff     = cobrado - costo;
-  var pct      = Math.min(cobrado / costo, 1) * 100;
+  cajaActual.cobradoUSD = cobrado; cajaActual.numOrdenes = numOrdenes;
+  var costo = cajaActual.costo, diff = cobrado - costo, pct = Math.min(cobrado/costo,1)*100;
   var barColor = diff >= 0 ? '#2e7d32' : (pct > 60 ? '#e65100' : 'var(--danger)');
-
   document.getElementById('cjCosto').textContent   = '$' + costo;
   document.getElementById('cjCobrado').textContent = '$' + cobrado.toFixed(2);
-  document.getElementById('cjOrdenes').textContent = cajaActual.numOrdenes;
+  document.getElementById('cjOrdenes').textContent = numOrdenes;
   document.getElementById('cjBarra').style.width      = pct.toFixed(1) + '%';
   document.getElementById('cjBarra').style.background = barColor;
-
-  var statusEl = document.getElementById('cjStatus');
-  var montoEl  = document.getElementById('cjMonto');
-  var labelEl  = document.getElementById('cjLabel');
-
   if (diff >= 0) {
-    statusEl.className = 'caja-status ok';
-    montoEl.textContent = '$' + diff.toFixed(2) + ' sobrante';
-    labelEl.textContent = 'El envio esta cubierto ✓';
+    document.getElementById('cjStatus').className = 'caja-status ok';
+    document.getElementById('cjMonto').textContent = '$' + diff.toFixed(2) + ' sobrante';
+    document.getElementById('cjLabel').textContent = 'El envio esta cubierto ✓';
   } else {
-    statusEl.className = 'caja-status falta';
-    montoEl.textContent = 'Falta $' + Math.abs(diff).toFixed(2) + ' USD';
-    labelEl.textContent = 'para cubrir el costo de la caja';
+    document.getElementById('cjStatus').className = 'caja-status falta';
+    document.getElementById('cjMonto').textContent = 'Falta $' + Math.abs(diff).toFixed(2) + ' USD';
+    document.getElementById('cjLabel').textContent = 'para cubrir el costo de la caja';
   }
-
-  detalle.style.display  = 'block';
-  btnReset.style.display = 'inline-flex';
+  detalle.style.display='block'; btnReset.style.display='inline-flex';
 }
 
 // ── Stats + historial ─────────────────────────────────
@@ -721,19 +931,22 @@ function renderStats() {
   var total = ordenes.length;
   ordenes.slice().reverse().forEach(function(o, revIdx) {
     var realIdx = total - 1 - revIdx;
+    var estado  = getEstadoPago(o);
+    var estadoColor = estado==='pagado'?'#2e7d32':(estado==='abonado'?'#e65100':'var(--danger)');
+    var estadoLabel = estado==='pagado'?'✅ Pagado':(estado==='abonado'?'🔶 Abonado':'⏳ Pendiente');
     var div = document.createElement('div');
     div.className = 'hist-item';
-    var descRow = o.descuentos > 0 ? '<span style="color:#2e7d32;">Descuento -Q' + o.descuentos.toFixed(2) + '</span>' : '<span></span>';
     div.innerHTML =
       '<div class="hist-header">' +
         '<div><div class="hist-num">' + o.numero + '</div><div class="hist-client">' + o.cliente + '</div></div>' +
-        '<div class="hist-date">' + o.fecha + '</div>' +
+        '<div style="text-align:right;"><div class="hist-date">' + o.fecha + '</div>' +
+        '<div style="font-size:11px;font-weight:600;color:' + estadoColor + ';margin-top:3px;">' + estadoLabel + '</div></div>' +
       '</div>' +
       '<div class="hist-meta">' +
         '<span>Costo Q' + o.costo.toFixed(2) + '</span>' +
         '<span>Ganancia Q' + o.ganancia.toFixed(2) + '</span>' +
         '<span>Envio Q' + o.envio.toFixed(2) + '</span>' +
-        descRow +
+        (o.descuentos > 0 ? '<span style="color:#2e7d32;">Desc. -Q' + o.descuentos.toFixed(2) + '</span>' : '<span></span>') +
         '<span style="font-weight:600;color:var(--rose);grid-column:1/-1;">Total Q' + o.total.toFixed(2) + '</span>' +
       '</div>';
     var btn = document.createElement('button');
@@ -750,27 +963,27 @@ function pedirEliminarOrden(idx) {
   dialogo({ icon:'!', title:'Eliminar orden', msg:'Eliminar esta orden del historial?',
     btns:[
       { texto:'Si, eliminar', clase:'btn-danger', cb:function(){
-          ordenes.splice(idx, 1);
-          guardarDatos(); renderStats();
-        }},
+        ordenes.splice(idx, 1); guardarDatos(); renderStats(); renderCobros();
+      }},
       { texto:'Cancelar' }
     ]
   });
 }
 
 function pedirReiniciar() {
-  dialogo({ icon:'!', title:'Reiniciar todo', msg:'Esto eliminara TODAS las ordenes y reiniciara la caja. Estas segura?',
+  dialogo({ icon:'!', title:'Reiniciar todo', msg:'Esto eliminara TODAS las ordenes. Estas segura?',
     btns:[
       { texto:'Si, borrar todo', clase:'btn-danger', cb:function(){
         ordenes=[]; items=[]; numeroActual=1; cajaActual=null;
         document.getElementById('cajaSizeSelect').value = '';
-        guardarDatos(); actualizarNumero(); renderItems(); renderStats();
+        guardarDatos(); actualizarNumero(); renderItems(); renderStats(); renderCobros();
       }},
       { texto:'Cancelar' }
     ]
   });
 }
-// ── Registro Service Worker (PWA) ────────────────────
+
+// ── PWA ───────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js');
