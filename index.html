@@ -216,11 +216,11 @@ textarea{resize:none;height:72px;}
         <div class="stat-value" id="statOrdenes">0</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Ganancia total</div>
+        <div class="stat-label">Ganancia personal shopper</div>
         <div class="stat-value" id="statGanancia">Q0</div>
       </div>
       <div class="stat-card" style="grid-column:1/-1;">
-        <div class="stat-label">Costo total gestionado</div>
+        <div class="stat-label">Total cobrado a clientes</div>
         <div class="stat-value" id="statCosto">Q0</div>
       </div>
     </div>
@@ -299,9 +299,15 @@ textarea{resize:none;height:72px;}
       </div>
     </div>
     <div style="height:12px;"></div>
-    <div class="field" style="margin-bottom:0;">
-      <div class="label">Descuento en Q — opcional</div>
-      <input type="number" id="prodDescuento" placeholder="0.00" min="0" step="0.01">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field" style="margin-bottom:0;">
+        <div class="label">Desc. tienda USD 🏷️</div>
+        <input type="number" id="prodDescTienda" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <div class="label">Desc. al cliente Q 🎁</div>
+        <input type="number" id="prodDescuento" placeholder="0.00" min="0" step="0.01">
+      </div>
     </div>
     <div style="height:14px;"></div>
     <button class="btn btn-primary" onclick="agregarProducto()">Agregar producto</button>
@@ -410,28 +416,31 @@ function actualizarNumero() {
 // ── Productos ────────────────────────────────────────
 
 function agregarProducto() {
-  var nombre    = document.getElementById('prodNombre').value.trim();
-  var desc      = document.getElementById('prodDesc').value.trim();
-  var link      = document.getElementById('prodLink').value.trim();
-  var cant      = parseInt(document.getElementById('prodCant').value) || 1;
-  var precio    = parseFloat(document.getElementById('prodPrecio').value);
-  var descuento = parseFloat(document.getElementById('prodDescuento').value) || 0;
+  var nombre     = document.getElementById('prodNombre').value.trim();
+  var desc       = document.getElementById('prodDesc').value.trim();
+  var link       = document.getElementById('prodLink').value.trim();
+  var cant       = parseInt(document.getElementById('prodCant').value) || 1;
+  var precio     = parseFloat(document.getElementById('prodPrecio').value);
+  var descTienda = parseFloat(document.getElementById('prodDescTienda').value) || 0; // USD — ganancia extra
+  var descuento  = parseFloat(document.getElementById('prodDescuento').value) || 0;  // Q — rebaja al cliente
 
   if (!nombre) { alerta('!','Campo requerido','Ingresa el nombre del producto.'); return; }
   if (!precio || precio <= 0) { alerta('!','Precio invalido','Ingresa un precio en USD valido.'); return; }
+  if (descTienda >= precio) { alerta('!','Descuento invalido','El descuento de tienda no puede ser mayor o igual al precio.'); return; }
 
   var totalSinDesc = ((precio * (1 + GANANCIA_PCT)) + ENVIO_USD) * cant * CAMBIO;
   if (descuento > totalSinDesc) {
-    alerta('!','Descuento invalido','El descuento no puede ser mayor al total (Q' + totalSinDesc.toFixed(2) + ').'); return;
+    alerta('!','Descuento invalido','El descuento al cliente no puede ser mayor al total (Q' + totalSinDesc.toFixed(2) + ').'); return;
   }
 
-  items.push({ nombre:nombre, desc:desc, link:link, cant:cant, precio:precio, descuento:descuento });
-  document.getElementById('prodNombre').value    = '';
-  document.getElementById('prodDesc').value      = '';
-  document.getElementById('prodLink').value      = '';
-  document.getElementById('prodCant').value      = '1';
-  document.getElementById('prodPrecio').value    = '';
-  document.getElementById('prodDescuento').value = '';
+  items.push({ nombre:nombre, desc:desc, link:link, cant:cant, precio:precio, descTienda:descTienda, descuento:descuento });
+  document.getElementById('prodNombre').value     = '';
+  document.getElementById('prodDesc').value       = '';
+  document.getElementById('prodLink').value       = '';
+  document.getElementById('prodCant').value       = '1';
+  document.getElementById('prodPrecio').value     = '';
+  document.getElementById('prodDescTienda').value = '';
+  document.getElementById('prodDescuento').value  = '';
   cerrarModal();
   renderItems();
 }
@@ -444,37 +453,51 @@ function renderItems() {
     resumenWrap.style.display = 'none';
     return;
   }
-  var subtotal = 0, envio = 0, totalDesc = 0, html = '';
+  var subtotal = 0, envio = 0, totalDesc = 0, totalDescTienda = 0, html = '';
   items.forEach(function(item, i) {
+    // Lo que le cobramos al cliente se basa en el precio ORIGINAL (sin desc tienda)
     var base  = ((item.precio * (1 + GANANCIA_PCT)) + ENVIO_USD) * item.cant * CAMBIO;
     var final = base - (item.descuento || 0);
-    subtotal += item.precio * item.cant;
-    envio    += ENVIO_USD * item.cant;
-    totalDesc += (item.descuento || 0);
-    var badge = item.descuento > 0 ? '<span class="descuento-badge">-Q' + item.descuento.toFixed(2) + '</span>' : '';
+    subtotal       += item.precio * item.cant;
+    envio          += ENVIO_USD * item.cant;
+    totalDesc      += (item.descuento || 0);
+    totalDescTienda += (item.descTienda || 0) * item.cant;
+
+    var badges = '';
+    if (item.descTienda > 0) badges += '<span class="descuento-badge" style="background:#e3f2fd;color:#1565c0;">+$' + item.descTienda.toFixed(2) + ' ganancia tienda</span>';
+    if (item.descuento > 0)  badges += '<span class="descuento-badge">-Q' + item.descuento.toFixed(2) + ' desc cliente</span>';
+
     html += '<div class="product-item">' +
       '<div class="product-num">' + (i+1) + '</div>' +
-      '<div class="product-info"><div class="product-name">' + item.nombre + badge + '</div>' +
-      '<div class="product-meta">Cant. ' + item.cant + ' · $' + item.precio.toFixed(2) + ' USD</div></div>' +
+      '<div class="product-info"><div class="product-name">' + item.nombre + '</div>' +
+      '<div class="product-meta">Cant. ' + item.cant + ' · $' + item.precio.toFixed(2) + ' USD</div>' +
+      (badges ? '<div style="margin-top:3px;">' + badges + '</div>' : '') +
+      '</div>' +
       '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
       '<span style="font-size:13px;font-weight:600;">Q' + final.toFixed(2) + '</span>' +
       '<button class="btn btn-danger btn-sm" onclick="pedirEliminarProducto(' + i + ')">X</button>' +
       '</div></div>';
   });
   lista.innerHTML = html;
-  var ganancia  = subtotal * GANANCIA_PCT;
-  var total     = (subtotal + ganancia + envio) * CAMBIO - totalDesc;
+
+  // Total que paga el cliente — basado en precio original, no cambia por descuento tienda
+  var gananciaBase  = subtotal * GANANCIA_PCT;
+  var totalCliente  = (subtotal + gananciaBase + envio) * CAMBIO - totalDesc;
+  // Ganancia real tuya = 20% + descuento tienda en Q - descuento que le diste al cliente
+  var gananciaExtra = totalDescTienda * CAMBIO;
+  var gananciaTotal = Math.max(0, (gananciaBase * CAMBIO) + gananciaExtra - totalDesc);
+
   resumenWrap.style.display = 'block';
   document.getElementById('r-costo').textContent    = 'Q' + (subtotal * CAMBIO).toFixed(2);
   document.getElementById('r-envio').textContent    = 'Q' + (envio * CAMBIO).toFixed(2);
-  document.getElementById('r-ganancia').textContent = 'Q' + (ganancia * CAMBIO).toFixed(2);
+  document.getElementById('r-ganancia').textContent = 'Q' + gananciaTotal.toFixed(2);
   if (totalDesc > 0) {
     document.getElementById('r-descuento-row').style.display = 'flex';
     document.getElementById('r-descuento').textContent = '-Q' + totalDesc.toFixed(2);
   } else {
     document.getElementById('r-descuento-row').style.display = 'none';
   }
-  document.getElementById('r-total').textContent = 'Q' + total.toFixed(2);
+  document.getElementById('r-total').textContent = 'Q' + totalCliente.toFixed(2);
 }
 
 function pedirEliminarProducto(i) {
@@ -493,33 +516,32 @@ function guardarOrden() {
   if (!cliente) { alerta('!','Campo requerido','Ingresa el nombre del cliente.'); return; }
   if (items.length === 0) { alerta('!','Sin productos','Agrega al menos un producto.'); return; }
 
-  var subtotal = 0, envio = 0, totalDesc = 0;
+  var subtotal = 0, envio = 0, totalDesc = 0, totalDescTienda = 0;
   items.forEach(function(item){
-    subtotal  += item.precio * item.cant;
-    envio     += ENVIO_USD * item.cant;
-    totalDesc += (item.descuento || 0);
+    subtotal        += item.precio * item.cant;
+    envio           += ENVIO_USD * item.cant;
+    totalDesc       += (item.descuento || 0);
+    totalDescTienda += (item.descTienda || 0) * item.cant;
   });
-  var ganancia = subtotal * GANANCIA_PCT;
-  var total    = (subtotal + ganancia + envio) * CAMBIO - totalDesc;
+  var gananciaBase  = subtotal * GANANCIA_PCT;
+  var gananciaExtra = totalDescTienda * CAMBIO;  // desc tienda en Q = ganancia extra
+  var gananciaReal  = Math.max(0, (gananciaBase * CAMBIO) + gananciaExtra - totalDesc);
+  // Total cliente = precio original con el 20% y envio, menos cualquier descuento que le diste
+  var total         = (subtotal + gananciaBase + envio) * CAMBIO - totalDesc;
   var numero   = document.getElementById('numeroOrden').value;
   var fecha    = new Date().toLocaleDateString('es-GT');
-  var envioUSD = envio; // already in USD
+  var envioUSD = envio;
 
-  var orden = { numero:numero, cliente:cliente, costo:subtotal*CAMBIO, ganancia:ganancia*CAMBIO,
-                envio:envio*CAMBIO, envioUSD:envio, descuentos:totalDesc, total:total, fecha:fecha };
+  var orden = { numero:numero, cliente:cliente, costo:subtotal*CAMBIO, ganancia:gananciaReal,
+                envio:envio*CAMBIO, envioUSD:envio, descuentos:totalDesc, total:total, fecha:fecha,
+                fechaGuardado: Date.now() };
   ordenes.push(orden);
-
-  // Auto-agregar a la caja activa si existe
-  if (cajaActual) {
-    cajaActual.cobradoUSD += envioUSD;
-    cajaActual.numOrdenes += 1;
-  }
 
   guardarDatos();
   renderStats();
 
   pendientePDF = { numero:numero, cliente:cliente, fecha:fecha, items:JSON.parse(JSON.stringify(items)),
-                   subtotal:subtotal, ganancia:ganancia, envio:envio, totalDescuentos:totalDesc, total:total };
+                   subtotal:subtotal, ganancia:gananciaReal, envio:envio, totalDescuentos:totalDesc, total:total };
 
   items = [];
   document.getElementById('cliente').value = '';
@@ -600,11 +622,12 @@ function seleccionarCaja() {
   if (cajaActual && cajaActual.size === size) { renderCajaWidget(); return; }
 
   cajaActual = {
-    size:       size,
-    costo:      costo,       // USD cobrado por MGS
-    cobradoUSD: 0,           // suma de envioUSD de las ordenes guardadas desde que se abrio
-    numOrdenes: 0,
-    fecha:      new Date().toLocaleDateString('es-GT')
+    size:        size,
+    costo:       costo,
+    cobradoUSD:  0,
+    numOrdenes:  0,
+    fecha:       new Date().toLocaleDateString('es-GT'),
+    fechaInicio: Date.now()
   };
   guardarDatos();
   renderCajaWidget();
@@ -639,7 +662,17 @@ function renderCajaWidget() {
   // Restaurar select al valor guardado
   select.value = cajaActual.size + '|' + cajaActual.costo;
 
-  var cobrado  = cajaActual.cobradoUSD;
+  // Recalcular cobrado sumando envioUSD de todas las ordenes guardadas desde que se abrio la caja
+  var cobrado = 0;
+  var numOrdenes = 0;
+  ordenes.forEach(function(o) {
+    if (o.fechaGuardado >= cajaActual.fechaInicio || !cajaActual.fechaInicio) {
+      cobrado += (o.envioUSD || (o.envio / CAMBIO));
+      numOrdenes++;
+    }
+  });
+  cajaActual.cobradoUSD = cobrado;
+  cajaActual.numOrdenes = numOrdenes;
   var costo    = cajaActual.costo;
   var diff     = cobrado - costo;
   var pct      = Math.min(cobrado / costo, 1) * 100;
@@ -672,10 +705,10 @@ function renderCajaWidget() {
 // ── Stats + historial ─────────────────────────────────
 
 function renderStats() {
-  var costo = 0, ganancia = 0;
-  ordenes.forEach(function(o){ costo += o.costo; ganancia += o.ganancia; });
+  var totalCobrado = 0, ganancia = 0;
+  ordenes.forEach(function(o){ totalCobrado += o.total; ganancia += o.ganancia; });
   document.getElementById('statOrdenes').textContent  = ordenes.length;
-  document.getElementById('statCosto').textContent    = 'Q' + costo.toFixed(0);
+  document.getElementById('statCosto').textContent    = 'Q' + totalCobrado.toFixed(0);
   document.getElementById('statGanancia').textContent = 'Q' + ganancia.toFixed(0);
   renderCajaWidget();
 
@@ -717,14 +750,9 @@ function pedirEliminarOrden(idx) {
   dialogo({ icon:'!', title:'Eliminar orden', msg:'Eliminar esta orden del historial?',
     btns:[
       { texto:'Si, eliminar', clase:'btn-danger', cb:function(){
-        // Si hay caja activa, restar el envio de esa orden
-        if (cajaActual && ordenes[idx] && ordenes[idx].envioUSD) {
-          cajaActual.cobradoUSD = Math.max(0, cajaActual.cobradoUSD - ordenes[idx].envioUSD);
-          cajaActual.numOrdenes = Math.max(0, cajaActual.numOrdenes - 1);
-        }
-        ordenes.splice(idx, 1);
-        guardarDatos(); renderStats();
-      }},
+          ordenes.splice(idx, 1);
+          guardarDatos(); renderStats();
+        }},
       { texto:'Cancelar' }
     ]
   });
