@@ -153,6 +153,12 @@ textarea{resize:none;height:72px;}
 .pdf-title{font-size:17px;font-weight:600;color:var(--text);text-align:center;margin-bottom:8px;}
 .pdf-desc{font-size:13px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:20px;}
 .descuento-badge{display:inline-block;background:#e8f5e9;color:#2e7d32;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:4px;}
+
+/* Sync */
+#syncIndicator{display:none;align-items:center;gap:6px;font-size:11px;color:var(--text3);margin-left:auto;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--rose);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+#toast{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1614;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:999;transition:opacity .4s;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -166,7 +172,12 @@ textarea{resize:none;height:72px;}
     <div class="brand">Kari Finds</div>
     <div class="sub">Personal Shopper</div>
   </div>
+  <div id="syncIndicator">
+    <div class="sync-dot"></div>
+    <span>Sincronizando...</span>
+  </div>
 </div>
+<div id="toast"></div>
 
 <div class="tabs">
   <button class="tab-btn active" onclick="mostrar('ordenes',this)">Ordenes</button>
@@ -425,7 +436,35 @@ var pendientePDF = null;
 var cajaActual = null;
 var abonoOrdenIdx = null; // orden actualmente en el modal de abono
 
-function cargarDatos() {
+var SUPABASE_URL = 'https://dwouwqgmyzozwjokgwkb.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3b3V3cWdteXpvendqb2tnd2tiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTk4MDksImV4cCI6MjA5NTczNTgwOX0.73lwEhiTFeW3CgGW5-kkV5u90MUbQdbaGR4gK-3e7ow';
+var TABLA = 'karifindspwa';
+
+// ── Supabase helpers ──────────────────────────────────
+
+async function sbGet(id) {
+  var r = await fetch(SUPABASE_URL + '/rest/v1/' + TABLA + '?id=eq.' + id + '&select=data', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  var rows = await r.json();
+  return rows.length ? rows[0].data : null;
+}
+
+async function sbSet(id, data) {
+  await fetch(SUPABASE_URL + '/rest/v1/' + TABLA, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify({ id: id, data: data, updated_at: new Date().toISOString() })
+  });
+}
+
+// ── Cargar y guardar datos ────────────────────────────
+
+async function cargarDatos() {
+  // Cargar desde localStorage mientras carga la nube
   try {
     var d1 = localStorage.getItem('kf_ordenes');
     var d2 = localStorage.getItem('kf_numero');
@@ -433,22 +472,104 @@ function cargarDatos() {
     if (d1) ordenes      = JSON.parse(d1);
     if (d2) numeroActual = parseInt(d2);
     if (d3) cajaActual   = JSON.parse(d3);
-  } catch(e) { ordenes = []; numeroActual = 1; cajaActual = null; }
+  } catch(e) {}
+
+  // Luego cargar desde Supabase (fuente de verdad)
+  try {
+    mostrarSincronizando(true);
+    var nube = await sbGet('karifindspwa_data');
+    if (nube) {
+      ordenes      = nube.ordenes      || [];
+      numeroActual = nube.numeroActual || 1;
+      cajaActual   = nube.cajaActual   || null;
+      // Actualizar localStorage con datos de la nube
+      localStorage.setItem('kf_ordenes', JSON.stringify(ordenes));
+      localStorage.setItem('kf_numero',  String(numeroActual));
+      localStorage.setItem('kf_caja',    JSON.stringify(cajaActual));
+    }
+  } catch(e) {
+    console.log('Sin conexion, usando datos locales');
+  } finally {
+    mostrarSincronizando(false);
+  }
 }
 
-function guardarDatos() {
+async function guardarDatos() {
+  // Guardar local siempre (funciona sin internet)
   try {
     localStorage.setItem('kf_ordenes', JSON.stringify(ordenes));
     localStorage.setItem('kf_numero',  String(numeroActual));
     localStorage.setItem('kf_caja',    JSON.stringify(cajaActual));
   } catch(e) {}
+
+  // Guardar en nube
+  try {
+    mostrarSincronizando(true);
+    await sbSet('karifindspwa_data', {
+      ordenes:      ordenes,
+      numeroActual: numeroActual,
+      cajaActual:   cajaActual
+    });
+  } catch(e) {
+    console.log('Error guardando en nube:', e);
+  } finally {
+    mostrarSincronizando(false);
+  }
 }
 
-cargarDatos();
-actualizarNumero();
-renderItems();
-renderStats();
-renderCobros();
+function mostrarSincronizando(estado) {
+  var el = document.getElementById('syncIndicator');
+  if (el) el.style.display = estado ? 'flex' : 'none';
+}
+
+// ── Polling: actualizar si otro dispositivo cambio datos ──
+var ultimoUpdate = null;
+
+async function checkActualizaciones() {
+  try {
+    var r = await fetch(SUPABASE_URL + '/rest/v1/' + TABLA + '?id=eq.karifindspwa_data&select=updated_at', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    var rows = await r.json();
+    if (!rows.length) return;
+    var nuevoUpdate = rows[0].updated_at;
+    if (ultimoUpdate && nuevoUpdate !== ultimoUpdate) {
+      // Otro dispositivo actualizó los datos
+      var nube = await sbGet('karifindspwa_data');
+      if (nube) {
+        ordenes      = nube.ordenes      || [];
+        numeroActual = nube.numeroActual || 1;
+        cajaActual   = nube.cajaActual   || null;
+        localStorage.setItem('kf_ordenes', JSON.stringify(ordenes));
+        localStorage.setItem('kf_numero',  String(numeroActual));
+        localStorage.setItem('kf_caja',    JSON.stringify(cajaActual));
+        renderStats(); renderCobros(); renderItems(); actualizarNumero();
+        mostrarToast('🔄 Datos actualizados desde otro dispositivo');
+      }
+    }
+    ultimoUpdate = nuevoUpdate;
+  } catch(e) {}
+}
+
+function mostrarToast(msg) {
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.opacity = '1';
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.style.display='none'; }, 400); }, 3000);
+}
+
+cargarDatos().then(function() {
+  actualizarNumero();
+  renderItems();
+  renderStats();
+  renderCobros();
+  // Revisar cambios de otros dispositivos cada 10 segundos
+  setInterval(checkActualizaciones, 10000);
+  // Guardar timestamp inicial
+  checkActualizaciones();
+});
 
 // ── UI helpers ──────────────────────────────────────
 
