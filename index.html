@@ -357,6 +357,10 @@ textarea{resize:none;height:72px;}
       </div>
     </div>
     <div style="height:12px;"></div>
+    <div class="field">
+      <div class="label">Envio USD 🚚 <span style="font-weight:400;color:var(--text3);">(default $5)</span></div>
+      <input type="number" id="prodEnvio" placeholder="5.00" min="0" step="0.01">
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="field" style="margin-bottom:0;">
         <div class="label">Desc. tienda USD 🏷️</div>
@@ -621,6 +625,8 @@ function agregarProducto() {
   var link       = document.getElementById('prodLink').value.trim();
   var cant       = parseInt(document.getElementById('prodCant').value) || 1;
   var precio     = parseFloat(document.getElementById('prodPrecio').value);
+  var envioItem  = parseFloat(document.getElementById('prodEnvio').value);
+  if (isNaN(envioItem) || document.getElementById('prodEnvio').value === '') envioItem = ENVIO_USD;
   var descTienda = parseFloat(document.getElementById('prodDescTienda').value) || 0;
   var descuento  = parseFloat(document.getElementById('prodDescuento').value) || 0;
 
@@ -628,17 +634,18 @@ function agregarProducto() {
   if (!precio || precio <= 0) { alerta('!','Precio invalido','Ingresa un precio en USD valido.'); return; }
   if (descTienda >= precio) { alerta('!','Descuento invalido','El descuento de tienda no puede ser mayor o igual al precio.'); return; }
 
-  var totalSinDesc = ((precio * (1 + GANANCIA_PCT)) + ENVIO_USD) * cant * CAMBIO;
+  var totalSinDesc = ((precio * (1 + GANANCIA_PCT)) + envioItem) * cant * CAMBIO;
   if (descuento > totalSinDesc) {
     alerta('!','Descuento invalido','El descuento al cliente no puede ser mayor al total (Q' + totalSinDesc.toFixed(2) + ').'); return;
   }
 
-  items.push({ nombre:nombre, desc:desc, link:link, cant:cant, precio:precio, descTienda:descTienda, descuento:descuento });
+  items.push({ nombre:nombre, desc:desc, link:link, cant:cant, precio:precio, envioItem:envioItem, descTienda:descTienda, descuento:descuento });
   document.getElementById('prodNombre').value     = '';
   document.getElementById('prodDesc').value       = '';
   document.getElementById('prodLink').value       = '';
   document.getElementById('prodCant').value       = '1';
   document.getElementById('prodPrecio').value     = '';
+  document.getElementById('prodEnvio').value      = '';
   document.getElementById('prodDescTienda').value = '';
   document.getElementById('prodDescuento').value  = '';
   cerrarModal();
@@ -655,13 +662,16 @@ function renderItems() {
   }
   var subtotal = 0, envio = 0, totalDesc = 0, totalDescTienda = 0, html = '';
   items.forEach(function(item, i) {
-    var base  = ((item.precio * (1 + GANANCIA_PCT)) + ENVIO_USD) * item.cant * CAMBIO;
+    var envioItem = (item.envioItem !== undefined) ? item.envioItem : ENVIO_USD;
+    var base  = ((item.precio * (1 + GANANCIA_PCT)) + envioItem) * item.cant * CAMBIO;
     var final = base - (item.descuento || 0);
     subtotal        += item.precio * item.cant;
-    envio           += ENVIO_USD * item.cant;
+    envio           += envioItem * item.cant;
     totalDesc       += (item.descuento || 0);
     totalDescTienda += (item.descTienda || 0) * item.cant;
     var badges = '';
+    if (item.envioItem !== undefined && item.envioItem !== ENVIO_USD)
+      badges += '<span class="descuento-badge" style="background:#e8f0fe;color:#1a73e8;">✈ $' + item.envioItem.toFixed(2) + ' envio</span>';
     if (item.descTienda > 0) badges += '<span class="descuento-badge" style="background:#e3f2fd;color:#1565c0;">+$' + item.descTienda.toFixed(2) + ' ganancia tienda</span>';
     if (item.descuento > 0)  badges += '<span class="descuento-badge">-Q' + item.descuento.toFixed(2) + ' desc cliente</span>';
     html += '<div class="product-item">' +
@@ -711,8 +721,9 @@ function guardarOrden() {
 
   var subtotal = 0, envio = 0, totalDesc = 0, totalDescTienda = 0;
   items.forEach(function(item){
+    var envioItem    = (item.envioItem !== undefined) ? item.envioItem : ENVIO_USD;
     subtotal        += item.precio * item.cant;
-    envio           += ENVIO_USD * item.cant;
+    envio           += envioItem * item.cant;
     totalDesc       += (item.descuento || 0);
     totalDescTienda += (item.descTienda || 0) * item.cant;
   });
@@ -756,7 +767,8 @@ function enviarWhatsApp(d) {
   var t = 'Hola ' + d.cliente + '!\n\nAqui el resumen de tu orden con Kari Finds:\n\n';
   t += 'No. de orden: ' + d.numero + '\nFecha: ' + d.fecha + '\n\nPRODUCTOS:\n';
   d.items.forEach(function(item, i) {
-    var base  = ((item.precio * (1 + GANANCIA_PCT)) + ENVIO_USD) * item.cant * CAMBIO;
+    var envioItem = (item.envioItem !== undefined) ? item.envioItem : ENVIO_USD;
+    var base  = ((item.precio * (1 + GANANCIA_PCT)) + envioItem) * item.cant * CAMBIO;
     var final = base - (item.descuento || 0);
     t += '\n' + (i+1) + '. ' + item.nombre + '\n';
     if (item.desc) t += '   ' + item.desc + '\n';
