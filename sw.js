@@ -1,30 +1,38 @@
-const CACHE = 'karifindspwa-v1';
-const FILES = ['./index.html', './manifest.json'];
+const VERSION = 'kf-v1.0';
+const CACHE = `kari-finds-${VERSION}`;
 
-self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function(cache) {
-      return cache.addAll(FILES);
-    })
-  );
+// Al instalar: guarda el index en caché
+self.addEventListener('install', e => {
   self.skipWaiting();
-});
-
-self.addEventListener('activate', function(e) {
   e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); })
-      );
-    })
+    caches.open(CACHE).then(cache => cache.addAll(['./', './index.html']))
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', function(e) {
-  e.respondWith(
-    caches.match(e.request).then(function(cached) {
-      return cached || fetch(e.request);
-    })
+// Al activar: borra cachés viejos
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
+});
+
+// Al hacer fetch: red primero, caché como respaldo
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
+  );
+});
+
+// Responder al mensaje de skip waiting
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
