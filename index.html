@@ -505,7 +505,7 @@ const ENVIO_DEFAULT = 5;
 
 // ══════════════════════════════════════════════
 //  CONFIGURACIÓN GIST — pon tu token aquí abajo
-const GITHUB_TOKEN = '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';
+const GITHUB_TOKEN = 'PON_TU_TOKEN_AQUI';
 const GIST_FILENAME = 'karifinds_data.json';
 // ══════════════════════════════════════════════
 
@@ -835,6 +835,14 @@ function confirmarWhatsapp() {
   });
 
   lineas += `\n💳 *Total a pagar: Q${d.total.toFixed(2)}*\n\n`;
+  lineas += `━━━━━━━━━━━━━━━━━━\n`;
+  lineas += `*¿Cómo pagar?*\n\n`;
+  lineas += `🏦 *Depósito o transferencia:*\n`;
+  lineas += `Banco Industrial — Cuenta de Ahorro\n`;
+  lineas += `Número: *1510377*\n`;
+  lineas += `A nombre de: *Edik Alfaro*\n\n`;
+  lineas += `💳 *Tarjeta de crédito / Visacuotas / Credicuotas:*\n`;
+  lineas += `Contáctanos y te enviamos el link de pago 🔗\n\n`;
   lineas += `_Gracias por comprar con Kari Finds ✨_`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(lineas)}`;
