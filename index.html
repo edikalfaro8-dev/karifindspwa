@@ -503,17 +503,24 @@ const CAMBIO = 8;
 const GANANCIA_PCT = 0.20;
 const ENVIO_DEFAULT = 5;
 
+// ══════════════════════════════════════════════
+//  CONFIGURACIÓN GIST — pon tu token aquí abajo
+const GITHUB_TOKEN = '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';
+const GIST_FILENAME = 'karifinds_data.json';
+// ══════════════════════════════════════════════
+
 let items = [];
 let ordenes = [];
 let numeroActual = 1;
 let pendienteWA = null;
 let abonoIdx = -1;
 let cajaActual = { size: '', costo: 0, ordenes: [] };
+let gistId = null;
 
-// Cargar desde localStorage si está disponible
+// Arrancar app con datos locales y luego sincronizar con Gist
 try {
   const d = localStorage.getItem('kf_data');
-  if (d) { const p = JSON.parse(d); ordenes = p.ordenes||[]; numeroActual = p.numeroActual||1; cajaActual = p.cajaActual||{size:'',costo:0,ordenes:[]}; }
+  if (d) { const p = JSON.parse(d); ordenes = p.ordenes||[]; numeroActual = p.numeroActual||1; cajaActual = p.cajaActual||{size:'',costo:0,ordenes:[]}; gistId = p.gistId||null; }
 } catch(e) {}
 
 actualizarNumero();
@@ -521,8 +528,102 @@ renderItems();
 renderStats();
 renderCobros();
 
+// Sincronizar con Gist al arrancar
+sincronizarGist();
+
+/* ── GIST SYNC ── */
+async function sincronizarGist() {
+  if (!GITHUB_TOKEN || GITHUB_TOKEN === 'PON_TU_TOKEN_AQUI') return;
+  setSyncDot('loading');
+  try {
+    // Si ya tenemos gistId, leer datos remotos
+    if (gistId) {
+      const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const contenido = data.files[GIST_FILENAME]?.content;
+        if (contenido) {
+          const remoto = JSON.parse(contenido);
+          // Usar datos remotos si son más recientes (más órdenes o mismo número pero diferente)
+          if (remoto.ordenes && remoto.ordenes.length >= ordenes.length) {
+            ordenes = remoto.ordenes;
+            numeroActual = remoto.numeroActual || ordenes.length + 1;
+            cajaActual = remoto.cajaActual || cajaActual;
+            guardarLS();
+            actualizarNumero();
+            renderItems();
+            renderStats();
+            renderCobros();
+          }
+          setSyncDot('ok');
+          return;
+        }
+      }
+    }
+    // Si no hay gistId, buscar un gist existente con ese filename
+    const lista = await fetch('https://api.github.com/gists', {
+      headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (lista.ok) {
+      const gists = await lista.json();
+      const existente = gists.find(g => g.files[GIST_FILENAME]);
+      if (existente) {
+        gistId = existente.id;
+        guardarLS();
+        await sincronizarGist(); // reintentar con el id encontrado
+        return;
+      }
+    }
+    // Crear gist nuevo si no existe
+    await crearGist();
+    setSyncDot('ok');
+  } catch(e) {
+    setSyncDot('error');
+  }
+}
+
+async function crearGist() {
+  const body = { description: 'Kari Finds — datos', public: false,
+    files: { [GIST_FILENAME]: { content: datosJSON() } } };
+  const res = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: { Authorization: `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (res.ok) { const d = await res.json(); gistId = d.id; guardarLS(); }
+}
+
+async function guardarGist() {
+  if (!GITHUB_TOKEN || GITHUB_TOKEN === 'PON_TU_TOKEN_AQUI') return;
+  setSyncDot('loading');
+  try {
+    if (!gistId) { await crearGist(); }
+    else {
+      await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { [GIST_FILENAME]: { content: datosJSON() } } })
+      });
+    }
+    setSyncDot('ok');
+  } catch(e) { setSyncDot('error'); }
+}
+
+function datosJSON() {
+  return JSON.stringify({ ordenes, numeroActual, cajaActual, gistId });
+}
+
+function setSyncDot(estado) {
+  const dot = document.getElementById('syncDot');
+  if (!dot) return;
+  dot.style.background = estado === 'ok' ? '#4caf50' : estado === 'loading' ? '#ff9800' : '#e53935';
+  dot.title = estado === 'ok' ? 'Sincronizado ✓' : estado === 'loading' ? 'Sincronizando...' : 'Error de sync';
+}
+
 function guardarLS() {
-  try { localStorage.setItem('kf_data', JSON.stringify({ordenes, numeroActual, cajaActual})); } catch(e) {}
+  try { localStorage.setItem('kf_data', JSON.stringify({ordenes, numeroActual, cajaActual, gistId})); } catch(e) {}
 }
 
 /* ── TABS ── */
@@ -698,6 +799,7 @@ function guardarOrden() {
   // Agregar a caja actual
   cajaActual.ordenes.push({ numero, envioUSD: totalEnvio });
   guardarLS();
+  guardarGist();
 
   pendienteWA = { numero, cliente, fecha, items: JSON.parse(JSON.stringify(items)),
     subtotal: totalSubtotal, ganancia: totalGanancia, envio: totalEnvio, descuento: totalDescQ, total: totalFinal };
@@ -720,26 +822,19 @@ function confirmarWhatsapp() {
   const d = pendienteWA;
   pendienteWA = null;
 
-  let lineas = `*Kari Finds 🛍️ — Comprobante*\n`;
-  lineas += `Orden: *${d.numero}*\n`;
-  lineas += `Cliente: *${d.cliente}*\n`;
-  lineas += `Fecha: ${d.fecha}\n\n`;
-  lineas += `*Detalle de tu pedido:*\n`;
+  let lineas = `*Kari Finds 🛍️*\n`;
+  lineas += `Hola *${d.cliente}* 👋\n\n`;
+  lineas += `Aquí el detalle de tu orden *${d.numero}*:\n\n`;
 
   d.items.forEach((item, i) => {
-    const t = calcItem(item);
-    lineas += `${i+1}. ${item.nombre}`;
-    if (item.desc) lineas += ` (${item.desc})`;
-    lineas += `\n   Cant: ${item.cant} · Total: Q${t.total.toFixed(2)}\n`;
-    if (item.link) lineas += `   🔗 ${item.link}\n`;
+    lineas += `${i+1}. *${item.nombre}*`;
+    if (item.desc) lineas += ` — ${item.desc}`;
+    lineas += ` (x${item.cant})`;
+    if (item.link) lineas += `\n   🔗 ${item.link}`;
+    lineas += `\n`;
   });
 
-  lineas += `\n📊 *Resumen:*\n`;
-  lineas += `Subtotal productos: Q${(d.subtotal*CAMBIO).toFixed(2)}\n`;
-  lineas += `Envío internacional: Q${(d.envio*CAMBIO).toFixed(2)}\n`;
-  lineas += `Servicio personal shopper: Q${(d.ganancia*CAMBIO).toFixed(2)}\n`;
-  if (d.descuento > 0) lineas += `Descuento aplicado: -Q${d.descuento.toFixed(2)}\n`;
-  lineas += `\n💳 *TOTAL A PAGAR: Q${d.total.toFixed(2)}*\n\n`;
+  lineas += `\n💳 *Total a pagar: Q${d.total.toFixed(2)}*\n\n`;
   lineas += `_Gracias por comprar con Kari Finds ✨_`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(lineas)}`;
@@ -933,6 +1028,7 @@ function registrarAbono() {
     screenshot: tieneImg ? imgSrc : null
   });
   guardarLS();
+  guardarGist();
   cerrarModalAbono();
   renderCobros();
 }
@@ -1039,7 +1135,7 @@ document.getElementById('selectCaja').addEventListener('change', function(){
 function pedirEliminarOrden(idx) {
   dialogo({ icon:'🗑️', title:'Eliminar orden', msg:'¿Eliminar esta orden del historial? No se puede deshacer.',
     btns:[
-      {texto:'Sí, eliminar', clase:'btn-danger', cb:()=>{ ordenes.splice(idx,1); guardarLS(); renderStats(); renderCobros(); }},
+      {texto:'Sí, eliminar', clase:'btn-danger', cb:()=>{ ordenes.splice(idx,1); guardarLS(); guardarGist(); renderStats(); renderCobros(); }},
       {texto:'Cancelar', clase:'btn-secondary'}
     ]
   });
@@ -1051,7 +1147,7 @@ function pedirReiniciar() {
       {texto:'Sí, borrar todo', clase:'btn-danger', cb:()=>{
         ordenes=[]; items=[]; numeroActual=1; cajaActual={size:'',costo:0,ordenes:[]};
         actualizarNumero(); renderItems(); renderStats(); renderCobros();
-        guardarLS();
+        guardarLS(); guardarGist();
       }},
       {texto:'Cancelar', clase:'btn-secondary'}
     ]
