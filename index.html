@@ -462,7 +462,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // Service Worker inline — no necesita archivo sw.js externo
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const VERSION = 'kf-v3.5';
+    const VERSION = 'kf-v4.0';
     const CACHE = 'kari-finds-' + VERSION;
     self.addEventListener('install', e => {
       self.skipWaiting();
@@ -521,11 +521,12 @@ let pendienteWA = null;
 let abonoIdx = -1;
 let cajaActual = { size: '', costo: 0, ordenes: [] };
 let gistId = null;
+let ultimaActualizacion = 0;
 
 // Arrancar app con datos locales y luego sincronizar con Gist
 try {
   const d = localStorage.getItem('kf_data');
-  if (d) { const p = JSON.parse(d); ordenes = p.ordenes||[]; numeroActual = p.numeroActual||1; cajaActual = p.cajaActual||{size:'',costo:0,ordenes:[]}; gistId = p.gistId||null; }
+  if (d) { const p = JSON.parse(d); ordenes = p.ordenes||[]; numeroActual = p.numeroActual||1; cajaActual = p.cajaActual||{size:'',costo:0,ordenes:[]}; gistId = p.gistId||null; ultimaActualizacion = p.ultimaActualizacion||0; }
 } catch(e) {}
 
 actualizarNumero();
@@ -535,6 +536,8 @@ renderCobros();
 
 // Sincronizar con Gist al arrancar
 sincronizarGist();
+// Sincronizar cada 30 segundos para mantener todos los dispositivos actualizados
+setInterval(sincronizarGist, 30000);
 
 /* ── GIST SYNC ── */
 async function sincronizarGist() {
@@ -551,11 +554,14 @@ async function sincronizarGist() {
         const contenido = data.files[GIST_FILENAME]?.content;
         if (contenido) {
           const remoto = JSON.parse(contenido);
-          // Usar datos remotos si son más recientes (más órdenes o mismo número pero diferente)
-          if (remoto.ordenes && remoto.ordenes.length >= ordenes.length) {
+          // Usar datos remotos si tienen timestamp más reciente
+          const tsRemoto = remoto.ultimaActualizacion || 0;
+          const tsLocal  = ultimaActualizacion || 0;
+          if (remoto.ordenes && tsRemoto > tsLocal) {
             ordenes = remoto.ordenes;
             numeroActual = remoto.numeroActual || ordenes.length + 1;
             cajaActual = remoto.cajaActual || cajaActual;
+            ultimaActualizacion = tsRemoto;
             guardarLS();
             actualizarNumero();
             renderItems();
@@ -617,7 +623,12 @@ async function guardarGist() {
 }
 
 function datosJSON() {
-  return JSON.stringify({ ordenes, numeroActual, cajaActual, gistId });
+  ultimaActualizacion = Date.now();
+  return JSON.stringify({ ordenes, numeroActual, cajaActual, gistId, ultimaActualizacion });
+}
+
+function guardarLS() {
+  try { localStorage.setItem('kf_data', JSON.stringify({ordenes, numeroActual, cajaActual, gistId, ultimaActualizacion})); } catch(e) {}
 }
 
 function setSyncDot(estado) {
@@ -625,10 +636,6 @@ function setSyncDot(estado) {
   if (!dot) return;
   dot.style.background = estado === 'ok' ? '#4caf50' : estado === 'loading' ? '#ff9800' : '#e53935';
   dot.title = estado === 'ok' ? 'Sincronizado ✓' : estado === 'loading' ? 'Sincronizando...' : 'Error de sync';
-}
-
-function guardarLS() {
-  try { localStorage.setItem('kf_data', JSON.stringify({ordenes, numeroActual, cajaActual, gistId})); } catch(e) {}
 }
 
 /* ── TABS ── */
@@ -1126,16 +1133,63 @@ function actualizarCaja() {
 
 function cerrarCaja() {
   dialogo({ icon:'📦', title:'Cerrar caja',
-    msg:'¿Cerrar la caja actual y empezar una nueva? Las ordenes acumuladas se reiniciarán.',
+    msg:'¿Cerrar la caja actual? Se generará un resumen para enviar por WhatsApp.',
     btns:[
-      {texto:'Cerrar caja', clase:'btn-primary', cb:()=>{
+      {texto:'Cerrar y enviar resumen', clase:'btn-primary', cb:()=>{
+        enviarResumenCaja();
         cajaActual = {size:'', costo:0, ordenes:[]};
         document.getElementById('selectCaja').value='';
-        guardarLS(); actualizarCaja();
+        guardarLS(); guardarGist(); actualizarCaja();
       }},
-      {texto:'Cancelar', clase:'btn-secondary'}
+      {texto:'Solo cerrar', clase:'btn-secondary', cb:()=>{
+        cajaActual = {size:'', costo:0, ordenes:[]};
+        document.getElementById('selectCaja').value='';
+        guardarLS(); guardarGist(); actualizarCaja();
+      }},
+      {texto:'Cancelar', clase:'btn-danger'}
     ]
   });
+}
+
+function enviarResumenCaja() {
+  // Calcular totales de la caja
+  let totalEnvioUSD = 0;
+  cajaActual.ordenes.forEach(o => { totalEnvioUSD += o.envioUSD || 0; });
+  const costoCaja = cajaActual.costo || 0;
+  const diff = totalEnvioUSD - costoCaja;
+
+  // Buscar las órdenes completas que están en esta caja
+  const ordenesEnCaja = ordenes.filter(o =>
+    cajaActual.ordenes.some(co => co.numero === o.numero)
+  );
+
+  let msg = `📦 *Resumen de caja — Kari Finds*\n`;
+  msg += `Tamaño: *${cajaActual.size ? cajaActual.size + '"' : 'No especificado'}*\n`;
+  msg += `Fecha de cierre: ${new Date().toLocaleDateString('es-GT')}\n\n`;
+
+  msg += `*Órdenes incluidas (${ordenesEnCaja.length}):*\n`;
+  ordenesEnCaja.forEach((o, i) => {
+    msg += `\n${i+1}. *${o.numero}* — ${o.cliente}\n`;
+    o.items.forEach(item => {
+      msg += `   • ${item.nombre}`;
+      if (item.desc) msg += ` (${item.desc})`;
+      msg += ` x${item.cant}\n`;
+      if (item.link) msg += `     🔗 ${item.link}\n`;
+    });
+  });
+
+  msg += `\n━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📊 *Resumen financiero:*\n`;
+  msg += `Costo de la caja (MGS): $${costoCaja}\n`;
+  msg += `Cobrado en envíos: $${totalEnvioUSD.toFixed(2)}\n`;
+  if (diff >= 0) {
+    msg += `✅ Sobrante: $${diff.toFixed(2)}\n`;
+  } else {
+    msg += `⚠️ Faltante: $${Math.abs(diff).toFixed(2)}\n`;
+  }
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
 }
 
 document.getElementById('selectCaja').addEventListener('change', function(){
