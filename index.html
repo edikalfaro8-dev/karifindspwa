@@ -462,7 +462,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // Service Worker inline — no necesita archivo sw.js externo
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const VERSION = 'kf-v4.0';
+    const VERSION = 'kf-v4.1';
     const CACHE = 'kari-finds-' + VERSION;
     self.addEventListener('install', e => {
       self.skipWaiting();
@@ -623,12 +623,22 @@ async function guardarGist() {
 }
 
 function datosJSON() {
-  ultimaActualizacion = Date.now();
+  // NO actualizar timestamp aquí — solo serializar
   return JSON.stringify({ ordenes, numeroActual, cajaActual, gistId, ultimaActualizacion });
+}
+
+// Llamar esto SOLO cuando el dispositivo actual hace un cambio real
+function marcarCambio() {
+  ultimaActualizacion = Date.now();
 }
 
 function guardarLS() {
   try { localStorage.setItem('kf_data', JSON.stringify({ordenes, numeroActual, cajaActual, gistId, ultimaActualizacion})); } catch(e) {}
+}
+
+async function guardarGistConCambio() {
+  marcarCambio();
+  await guardarGist();
 }
 
 function setSyncDot(estado) {
@@ -811,7 +821,7 @@ function guardarOrden() {
   // Agregar a caja actual
   cajaActual.ordenes.push({ numero, envioUSD: totalEnvio });
   guardarLS();
-  guardarGist();
+  guardarGistConCambio();
 
   pendienteWA = { numero, cliente, fecha, items: JSON.parse(JSON.stringify(items)),
     subtotal: totalSubtotal, ganancia: totalGanancia, envio: totalEnvio, descuento: totalDescQ, total: totalFinal };
@@ -1048,7 +1058,7 @@ function registrarAbono() {
     screenshot: tieneImg ? imgSrc : null
   });
   guardarLS();
-  guardarGist();
+  guardarGistConCambio();
   cerrarModalAbono();
   renderCobros();
 }
@@ -1139,12 +1149,12 @@ function cerrarCaja() {
         enviarResumenCaja();
         cajaActual = {size:'', costo:0, ordenes:[]};
         document.getElementById('selectCaja').value='';
-        guardarLS(); guardarGist(); actualizarCaja();
+        guardarLS(); guardarGistConCambio(); actualizarCaja();
       }},
       {texto:'Solo cerrar', clase:'btn-secondary', cb:()=>{
         cajaActual = {size:'', costo:0, ordenes:[]};
         document.getElementById('selectCaja').value='';
-        guardarLS(); guardarGist(); actualizarCaja();
+        guardarLS(); guardarGistConCambio(); actualizarCaja();
       }},
       {texto:'Cancelar', clase:'btn-danger'}
     ]
@@ -1202,7 +1212,7 @@ document.getElementById('selectCaja').addEventListener('change', function(){
 function pedirEliminarOrden(idx) {
   dialogo({ icon:'🗑️', title:'Eliminar orden', msg:'¿Eliminar esta orden del historial? No se puede deshacer.',
     btns:[
-      {texto:'Sí, eliminar', clase:'btn-danger', cb:()=>{ ordenes.splice(idx,1); guardarLS(); guardarGist(); renderStats(); renderCobros(); }},
+      {texto:'Sí, eliminar', clase:'btn-danger', cb:()=>{ ordenes.splice(idx,1); guardarLS(); guardarGistConCambio(); renderStats(); renderCobros(); }},
       {texto:'Cancelar', clase:'btn-secondary'}
     ]
   });
@@ -1214,7 +1224,7 @@ function pedirReiniciar() {
       {texto:'Sí, borrar todo', clase:'btn-danger', cb:()=>{
         ordenes=[]; items=[]; numeroActual=1; cajaActual={size:'',costo:0,ordenes:[]};
         actualizarNumero(); renderItems(); renderStats(); renderCobros();
-        guardarLS(); guardarGist();
+        guardarLS(); guardarGistConCambio();
       }},
       {texto:'Cancelar', clase:'btn-secondary'}
     ]
