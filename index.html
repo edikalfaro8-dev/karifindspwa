@@ -177,7 +177,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
     <div class="brand">Kari Finds</div>
     <div class="sub">Personal Shopper</div>
   </div>
-  <div class="sync-dot ok" id="syncDot" title="Sincronizando..."></div>
+  <button id="syncBtn" onclick="forzarSync()" style="margin-left:auto;border:none;background:var(--rose-light);color:var(--rose);border-radius:8px;padding:6px 12px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px;">
+    <span id="syncIcon">🔄</span><span id="syncTxt">Sync</span>
+  </button>
 </div>
 
 <div class="tabs">
@@ -462,7 +464,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // Service Worker inline — no necesita archivo sw.js externo
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const VERSION = 'kf-v4.1';
+    const VERSION = 'kf-v4.2';
     const CACHE = 'kari-finds-' + VERSION;
     self.addEventListener('install', e => {
       self.skipWaiting();
@@ -544,55 +546,85 @@ async function sincronizarGist() {
   if (!GITHUB_TOKEN || GITHUB_TOKEN === 'PON_TU_TOKEN_AQUI') return;
   setSyncDot('loading');
   try {
-    // Si ya tenemos gistId, leer datos remotos
-    if (gistId) {
-      const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+    // Paso 1: encontrar el gistId si no lo tenemos
+    if (!gistId) {
+      const lista = await fetch('https://api.github.com/gists?per_page=100', {
         headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (lista.ok) {
+        const gists = await lista.json();
+        const existente = gists.find(g => g.files && g.files[GIST_FILENAME]);
+        if (existente) { gistId = existente.id; guardarLS(); }
+      }
+    }
+
+    // Paso 2: si tenemos gistId, leer datos remotos
+    if (gistId) {
+      const res = await fetch(`https://api.github.com/gists/${gistId}?t=${Date.now()}`, {
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' }
       });
       if (res.ok) {
         const data = await res.json();
         const contenido = data.files[GIST_FILENAME]?.content;
         if (contenido) {
           const remoto = JSON.parse(contenido);
-          // Usar datos remotos si tienen timestamp más reciente
           const tsRemoto = remoto.ultimaActualizacion || 0;
           const tsLocal  = ultimaActualizacion || 0;
-          if (remoto.ordenes && tsRemoto > tsLocal) {
-            ordenes = remoto.ordenes;
+          if (tsRemoto > tsLocal) {
+            // Datos remotos son más nuevos — actualizar
+            ordenes = remoto.ordenes || [];
             numeroActual = remoto.numeroActual || ordenes.length + 1;
-            cajaActual = remoto.cajaActual || cajaActual;
+            cajaActual = remoto.cajaActual || { size:'', costo:0, ordenes:[] };
             ultimaActualizacion = tsRemoto;
             guardarLS();
             actualizarNumero();
             renderItems();
             renderStats();
             renderCobros();
+            setSyncDot('ok', `Actualizado ✓`);
+          } else {
+            setSyncDot('ok', `Sincronizado ✓`);
           }
-          setSyncDot('ok');
           return;
         }
       }
     }
-    // Si no hay gistId, buscar un gist existente con ese filename
-    const lista = await fetch('https://api.github.com/gists', {
-      headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+
+    // Paso 3: no existe gist — crear uno
+    await crearGist();
+    setSyncDot('ok', 'Gist creado ✓');
+  } catch(e) {
+    setSyncDot('error', 'Sin conexión');
+  }
+}
+
+async function forzarSync() {
+  // Forzar lectura desde Gist ignorando timestamp local
+  if (!GITHUB_TOKEN || GITHUB_TOKEN === 'PON_TU_TOKEN_AQUI') return;
+  setSyncDot('loading');
+  try {
+    if (!gistId) { await sincronizarGist(); return; }
+    const res = await fetch(`https://api.github.com/gists/${gistId}?t=${Date.now()}`, {
+      headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' }
     });
-    if (lista.ok) {
-      const gists = await lista.json();
-      const existente = gists.find(g => g.files[GIST_FILENAME]);
-      if (existente) {
-        gistId = existente.id;
+    if (res.ok) {
+      const data = await res.json();
+      const contenido = data.files[GIST_FILENAME]?.content;
+      if (contenido) {
+        const remoto = JSON.parse(contenido);
+        ordenes = remoto.ordenes || [];
+        numeroActual = remoto.numeroActual || ordenes.length + 1;
+        cajaActual = remoto.cajaActual || { size:'', costo:0, ordenes:[] };
+        ultimaActualizacion = remoto.ultimaActualizacion || Date.now();
         guardarLS();
-        await sincronizarGist(); // reintentar con el id encontrado
-        return;
+        actualizarNumero();
+        renderItems();
+        renderStats();
+        renderCobros();
+        setSyncDot('ok', '¡Actualizado!');
       }
     }
-    // Crear gist nuevo si no existe
-    await crearGist();
-    setSyncDot('ok');
-  } catch(e) {
-    setSyncDot('error');
-  }
+  } catch(e) { setSyncDot('error', 'Sin conexión'); }
 }
 
 async function crearGist() {
@@ -618,16 +650,14 @@ async function guardarGist() {
         body: JSON.stringify({ files: { [GIST_FILENAME]: { content: datosJSON() } } })
       });
     }
-    setSyncDot('ok');
-  } catch(e) { setSyncDot('error'); }
+    setSyncDot('ok', 'Guardado ✓');
+  } catch(e) { setSyncDot('error', 'Sin conexión'); }
 }
 
 function datosJSON() {
-  // NO actualizar timestamp aquí — solo serializar
   return JSON.stringify({ ordenes, numeroActual, cajaActual, gistId, ultimaActualizacion });
 }
 
-// Llamar esto SOLO cuando el dispositivo actual hace un cambio real
 function marcarCambio() {
   ultimaActualizacion = Date.now();
 }
@@ -641,11 +671,25 @@ async function guardarGistConCambio() {
   await guardarGist();
 }
 
-function setSyncDot(estado) {
-  const dot = document.getElementById('syncDot');
-  if (!dot) return;
-  dot.style.background = estado === 'ok' ? '#4caf50' : estado === 'loading' ? '#ff9800' : '#e53935';
-  dot.title = estado === 'ok' ? 'Sincronizado ✓' : estado === 'loading' ? 'Sincronizando...' : 'Error de sync';
+function setSyncDot(estado, msg) {
+  const btn  = document.getElementById('syncBtn');
+  const icon = document.getElementById('syncIcon');
+  const txt  = document.getElementById('syncTxt');
+  if (!btn) return;
+  if (estado === 'loading') {
+    btn.style.background = '#fff3e0'; btn.style.color = '#e65100';
+    icon.textContent = '⏳'; txt.textContent = 'Sync...';
+  } else if (estado === 'ok') {
+    btn.style.background = '#e8f5e9'; btn.style.color = '#2e7d32';
+    icon.textContent = '✅'; txt.textContent = msg || 'Sync';
+    setTimeout(() => {
+      btn.style.background = 'var(--rose-light)'; btn.style.color = 'var(--rose)';
+      icon.textContent = '🔄'; txt.textContent = 'Sync';
+    }, 2000);
+  } else {
+    btn.style.background = '#fff0ef'; btn.style.color = '#c0392b';
+    icon.textContent = '❌'; txt.textContent = msg || 'Error';
+  }
 }
 
 /* ── TABS ── */
