@@ -464,7 +464,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // Service Worker inline — no necesita archivo sw.js externo
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const VERSION = 'kf-v4.2';
+    const VERSION = 'kf-v4.4';
     const CACHE = 'kari-finds-' + VERSION;
     self.addEventListener('install', e => {
       self.skipWaiting();
@@ -599,32 +599,61 @@ async function sincronizarGist() {
 }
 
 async function forzarSync() {
-  // Forzar lectura desde Gist ignorando timestamp local
-  if (!GITHUB_TOKEN || GITHUB_TOKEN === 'PON_TU_TOKEN_AQUI') return;
+  if (!GITHUB_TOKEN || GITHUB_TOKEN === 'PON_TU_TOKEN_AQUI') {
+    alerta('⚠️','Sin token','El token de GitHub no está configurado.'); return;
+  }
   setSyncDot('loading');
   try {
-    if (!gistId) { await sincronizarGist(); return; }
-    const res = await fetch(`https://api.github.com/gists/${gistId}?t=${Date.now()}`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Cache-Control': 'no-cache' }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const contenido = data.files[GIST_FILENAME]?.content;
-      if (contenido) {
-        const remoto = JSON.parse(contenido);
-        ordenes = remoto.ordenes || [];
-        numeroActual = remoto.numeroActual || ordenes.length + 1;
-        cajaActual = remoto.cajaActual || { size:'', costo:0, ordenes:[] };
-        ultimaActualizacion = remoto.ultimaActualizacion || Date.now();
-        guardarLS();
-        actualizarNumero();
-        renderItems();
-        renderStats();
-        renderCobros();
-        setSyncDot('ok', '¡Actualizado!');
+    // Si no tenemos gistId, buscar en GitHub
+    if (!gistId) {
+      const lista = await fetch('https://api.github.com/gists?per_page=100', {
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
+      });
+      if (!lista.ok) { setSyncDot('error', 'Error ' + lista.status); return; }
+      const gists = await lista.json();
+      const existente = gists.find(g => g.files && g.files[GIST_FILENAME]);
+      if (existente) { gistId = existente.id; guardarLS(); }
+      else { 
+        // No existe gist — crear con datos actuales
+        await crearGist();
+        setSyncDot('ok', 'Gist creado'); 
+        return; 
       }
     }
-  } catch(e) { setSyncDot('error', 'Sin conexión'); }
+
+    const res = await fetch(`https://api.github.com/gists/${gistId}?nocache=${Date.now()}`, {
+      headers: { 
+        Authorization: `token ${GITHUB_TOKEN}`, 
+        Accept: 'application/vnd.github.v3+json',
+        'Cache-Control': 'no-cache, no-store'
+      }
+    });
+
+    if (!res.ok) {
+      // gistId inválido — resetear y reintentar
+      if (res.status === 404) { gistId = null; guardarLS(); await forzarSync(); return; }
+      setSyncDot('error', 'Error ' + res.status); return;
+    }
+
+    const data = await res.json();
+    const contenido = data.files[GIST_FILENAME]?.content;
+    if (!contenido) { setSyncDot('error', 'Gist vacío'); return; }
+
+    const remoto = JSON.parse(contenido);
+    ordenes = remoto.ordenes || [];
+    numeroActual = remoto.numeroActual || ordenes.length + 1;
+    cajaActual = remoto.cajaActual || { size:'', costo:0, ordenes:[] };
+    ultimaActualizacion = remoto.ultimaActualizacion || 0;
+    guardarLS();
+    actualizarNumero();
+    renderItems();
+    renderStats();
+    renderCobros();
+    setSyncDot('ok', `✓ ${ordenes.length} órdenes`);
+
+  } catch(e) { 
+    setSyncDot('error', 'Sin conexión');
+  }
 }
 
 async function crearGist() {
@@ -759,13 +788,19 @@ function agregarProducto() {
 
 /* ── CALCULAR TOTALES DE UN ITEM ── */
 function calcItem(item) {
-  const precioNeto  = (item.precio - item.descTienda) * item.cant;
-  const envioTotal  = item.envio * item.cant;
-  const ganancia    = precioNeto * GANANCIA_PCT;
-  const bruto       = (precioNeto + ganancia + envioTotal) * CAMBIO;
-  const descQ       = item.descCliente * item.cant;
-  const total       = bruto - descQ;
-  return { precioNeto, envioTotal, ganancia, total, descQ };
+  // El cliente paga basado en el precio COMPLETO (sin descuento de tienda)
+  const precioCliente = item.precio * item.cant;
+  const envioTotal    = item.envio * item.cant;
+  const ganancia      = precioCliente * GANANCIA_PCT;
+  const bruto         = (precioCliente + ganancia + envioTotal) * CAMBIO;
+  const descQ         = (item.descCliente || 0) * item.cant;
+  const total         = bruto - descQ;
+
+  // El descuento de tienda es ganancia extra tuya (lo que pagas tú menos lo que cobra el cliente)
+  const costoReal     = (item.precio - (item.descTienda || 0)) * item.cant;
+  const gananciaExtra = (item.descTienda || 0) * item.cant; // diferencia va a tu bolsillo
+
+  return { precioCliente, envioTotal, ganancia, gananciaExtra, costoReal, total, descQ };
 }
 
 /* ── RENDER PRODUCTOS ── */
@@ -779,18 +814,19 @@ function renderItems() {
     return;
   }
 
-  let totalSubtotal=0, totalEnvio=0, totalGanancia=0, totalDescQ=0;
+  let totalPrecioCliente=0, totalEnvio=0, totalGanancia=0, totalDescQ=0, totalGananciaExtra=0;
   let html = '';
 
   items.forEach((item, i) => {
     const t = calcItem(item);
-    totalSubtotal += item.precio * item.cant;
-    totalEnvio    += t.envioTotal;
-    totalGanancia += t.ganancia;
-    totalDescQ    += t.descQ;
+    totalPrecioCliente += item.precio * item.cant;
+    totalEnvio         += t.envioTotal;
+    totalGanancia      += t.ganancia;
+    totalDescQ         += t.descQ;
+    totalGananciaExtra += t.gananciaExtra;
 
     let meta = `Cant. ${item.cant} · $${item.precio.toFixed(2)} USD · Envío $${item.envio}`;
-    if (item.descTienda) meta += ` · Desc.tienda -$${item.descTienda}`;
+    if (item.descTienda) meta += ` · 🎁 Desc.tienda $${item.descTienda} (ganancia extra tuya)`;
     if (item.descCliente) meta += ` · Desc.cliente -Q${item.descCliente}`;
 
     html += `<div class="product-item">
@@ -808,11 +844,11 @@ function renderItems() {
 
   lista.innerHTML = html;
 
-  const totalFinal = (totalSubtotal * CAMBIO) + (totalGanancia * CAMBIO) + (totalEnvio * CAMBIO) - totalDescQ;
+  const totalFinal = (totalPrecioCliente * CAMBIO) + (totalGanancia * CAMBIO) + (totalEnvio * CAMBIO) - totalDescQ;
   rw.style.display = 'block';
-  document.getElementById('r-costo').textContent    = 'Q' + (totalSubtotal * CAMBIO).toFixed(2);
+  document.getElementById('r-costo').textContent    = 'Q' + (totalPrecioCliente * CAMBIO).toFixed(2);
   document.getElementById('r-envio').textContent    = 'Q' + (totalEnvio * CAMBIO).toFixed(2);
-  document.getElementById('r-ganancia').textContent = 'Q' + (totalGanancia * CAMBIO).toFixed(2);
+  document.getElementById('r-ganancia').textContent = 'Q' + ((totalGanancia + totalGananciaExtra) * CAMBIO).toFixed(2);
   if (totalDescQ > 0) {
     document.getElementById('r-desc-wrap').style.display = 'flex';
     document.getElementById('r-descuento').textContent = '-Q' + totalDescQ.toFixed(2);
@@ -837,23 +873,24 @@ function guardarOrden() {
   if (!cliente) { alerta('⚠️','Campo requerido','Ingresa el nombre del cliente.'); return; }
   if (items.length === 0) { alerta('⚠️','Sin productos','Agrega al menos un producto.'); return; }
 
-  let totalSubtotal=0, totalEnvio=0, totalGanancia=0, totalDescQ=0;
+  let totalPrecioCliente=0, totalEnvio=0, totalGanancia=0, totalDescQ=0, totalGananciaExtra=0;
   items.forEach(item => {
     const t = calcItem(item);
-    totalSubtotal += item.precio * item.cant;
-    totalEnvio    += t.envioTotal;
-    totalGanancia += t.ganancia;
-    totalDescQ    += t.descQ;
+    totalPrecioCliente += item.precio * item.cant;
+    totalEnvio         += t.envioTotal;
+    totalGanancia      += t.ganancia;
+    totalDescQ         += t.descQ;
+    totalGananciaExtra += t.gananciaExtra;
   });
 
-  const totalFinal = (totalSubtotal + totalGanancia + totalEnvio) * CAMBIO - totalDescQ;
+  const totalFinal = (totalPrecioCliente + totalGanancia + totalEnvio) * CAMBIO - totalDescQ;
   const numero = document.getElementById('numeroOrden').value;
   const fecha  = new Date().toLocaleDateString('es-GT');
 
   ordenes.push({
     numero, cliente, fecha,
-    costo:    totalSubtotal * CAMBIO,
-    ganancia: totalGanancia * CAMBIO,
+    costo:    totalPrecioCliente * CAMBIO,
+    ganancia: (totalGanancia + totalGananciaExtra) * CAMBIO,
     envio:    totalEnvio * CAMBIO,
     descuento: totalDescQ,
     total:    totalFinal,
@@ -868,7 +905,7 @@ function guardarOrden() {
   guardarGistConCambio();
 
   pendienteWA = { numero, cliente, fecha, items: JSON.parse(JSON.stringify(items)),
-    subtotal: totalSubtotal, ganancia: totalGanancia, envio: totalEnvio, descuento: totalDescQ, total: totalFinal };
+    subtotal: totalPrecioCliente, ganancia: totalGanancia + totalGananciaExtra, envio: totalEnvio, descuento: totalDescQ, total: totalFinal };
 
   items = [];
   document.getElementById('cliente').value = '';
