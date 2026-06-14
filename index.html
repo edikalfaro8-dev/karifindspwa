@@ -464,7 +464,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // Service Worker inline — no necesita archivo sw.js externo
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const VERSION = 'kf-v4.4';
+    const VERSION = 'kf-v4.5';
     const CACHE = 'kari-finds-' + VERSION;
     self.addEventListener('install', e => {
       self.skipWaiting();
@@ -672,14 +672,20 @@ async function guardarGist() {
   setSyncDot('loading');
   try {
     if (!gistId) { await crearGist(); }
-    else {
-      await fetch(`https://api.github.com/gists/${gistId}`, {
-        method: 'PATCH',
-        headers: { Authorization: `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: { [GIST_FILENAME]: { content: datosJSON() } } })
-      });
+    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: 'PATCH',
+      headers: { 
+        Authorization: `token ${GITHUB_TOKEN}`, 
+        'Content-Type': 'application/json',
+        Accept: 'application/vnd.github.v3+json'
+      },
+      body: JSON.stringify({ files: { [GIST_FILENAME]: { content: datosJSON() } } })
+    });
+    if (res.ok) {
+      setSyncDot('ok', 'Guardado ✓');
+    } else {
+      setSyncDot('error', 'Error guardando ' + res.status);
     }
-    setSyncDot('ok', 'Guardado ✓');
   } catch(e) { setSyncDot('error', 'Sin conexión'); }
 }
 
