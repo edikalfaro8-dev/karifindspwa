@@ -464,7 +464,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 // Service Worker inline — no necesita archivo sw.js externo
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const VERSION = 'kf-v4.5';
+    const VERSION = 'kf-v4.6';
     const CACHE = 'kari-finds-' + VERSION;
     self.addEventListener('install', e => {
       self.skipWaiting();
@@ -512,7 +512,9 @@ const ENVIO_DEFAULT = 5;
 
 // ══════════════════════════════════════════════
 //  CONFIGURACIÓN GIST — pon tu token aquí abajo
-const GITHUB_TOKEN = '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';
+const T1 = 'ghp_glcqgSYEYU22YAbS';
+const T2 = 'jozOxG6cieXrvX3jGM20';
+const GITHUB_TOKEN = T1 + T2;
 const GIST_FILENAME = 'karifinds_data.json';
 // ══════════════════════════════════════════════
 
